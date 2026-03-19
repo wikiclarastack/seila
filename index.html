@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Eclipse Protocolo 90D</title>
+    <meta name="theme-color" content="#0b0b0f">
+    <style>
+        :root {
+            --primary: #8a2be2;
+            --secondary: #4b0082;
+            --accent: #00f2ff;
+            --bg: #0b0b0f;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(138, 43, 226, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background: var(--bg);
+            color: #fff;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+            padding-bottom: 40px;
+        }
+
+        /* Animações */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        .container { max-width: 450px; margin: 0 auto; padding: 20px; animation: fadeIn 0.6s ease-out; }
+
+        h1 { 
+            font-size: 1.8rem; text-align: center; margin-bottom: 25px; 
+            background: linear-gradient(to right, #fff, var(--primary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+        }
+
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        /* Seção Timer */
+        .timer-container { text-align: center; }
+        #status-label { font-size: 0.9rem; font-weight: bold; letter-spacing: 3px; color: var(--primary); margin-bottom: 5px; }
+        .timer-display { font-size: 5.5rem; font-weight: 800; margin: 10px 0; font-variant-numeric: tabular-nums; }
+        #exercise-name { font-size: 1.2rem; color: var(--accent); margin-bottom: 15px; min-height: 1.5rem; }
+
+        /* Controles */
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn {
+            padding: 16px; border: none; border-radius: 16px; font-weight: bold; cursor: pointer;
+            transition: all 0.2s ease; font-size: 0.9rem;
+        }
+        .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4); }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: #ccc; }
+        .btn:active { transform: scale(0.95); opacity: 0.8; }
+
+        /* Checklist */
+        .checklist-title { font-size: 1.1rem; margin-bottom: 15px; display: flex; justify-content: space-between; }
+        .task-item {
+            display: flex; align-items: center; padding: 14px; background: rgba(255,255,255,0.03);
+            border-radius: 12px; margin-bottom: 8px; cursor: pointer;
+        }
+        input[type="checkbox"] {
+            width: 22px; height: 22px; border: 2px solid var(--primary); border-radius: 6px;
+            appearance: none; margin-right: 15px; transition: 0.3s; position: relative;
+        }
+        input[type="checkbox"]:checked { background: var(--primary); border-color: var(--primary); }
+        input[type="checkbox"]:checked::after { content: '✓'; color: white; position: absolute; left: 4px; top: -2px; font-weight: bold; }
+
+        .progress-container { height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-bottom: 20px; }
+        .progress-bar { height: 100%; width: 0%; background: var(--primary); border-radius: 10px; transition: width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>ECLIPSE 90D</h1>
+
+    <div class="card timer-container">
+        <p id="status-label">PREPARADO?</p>
+        <div class="timer-display" id="display">45</div>
+        <p id="exercise-name">Clique para iniciar</p>
+        
+        <div class="controls">
+            <button class="btn btn-outline" onclick="resetWorkout()">RESET</button>
+            <button class="btn btn-primary" id="mainBtn" onclick="toggleWorkout()">INICIAR</button>
+        </div>
+    </div>
+
+    <div class="checklist-title">
+        <span>PROGRESSO DIÁRIO</span>
+        <span id="percent-text">0%</span>
+    </div>
+    <div class="progress-container"><div class="progress-bar" id="progress"></div></div>
+
+    <div class="card">
+        <div class="task-item" onclick="toggleCheck(0)"><input type="checkbox" class="task"> Jejum (16h)</div>
+        <div class="task-item" onclick="toggleCheck(1)"><input type="checkbox" class="task"> 3L Água</div>
+        <div class="task-item" onclick="toggleCheck(2)"><input type="checkbox" class="task"> HIIT Concluído</div>
+        <div class="task-item" onclick="toggleCheck(3)"><input type="checkbox" class="task"> Zero Açúcar</div>
+        <div class="task-item" onclick="toggleCheck(4)"><input type="checkbox" class="task"> Proteína Alta</div>
+    </div>
+</div>
+
+<script>
+    // Lista de exercícios para o circuito
+    const exercises = [
+        "Polichinelos", "Agachamento", "Flexão de Braço", 
+        "Afundo Esquerdo", "Afundo Direito", "Prancha", 
+        "Burpees", "Abdominal Supra", "Escalador", "Pular Corda (Invisível)"
+    ];
+
+    let timer;
+    let timeLeft = 45;
+    let isWorking = true;
+    let currentExIndex = 0;
+    let isRunning = false;
+
+    function toggleWorkout() {
+        const btn = document.getElementById('mainBtn');
+        if (isRunning) {
+            clearInterval(timer);
+            btn.innerText = "RETOMAR";
+            isRunning = false;
+        } else {
+            isRunning = true;
+            btn.innerText = "PAUSAR";
+            startTimer();
+        }
+    }
+
+    function startTimer() {
+        updateUI();
+        timer = setInterval(() => {
+            timeLeft--;
+            if (timeLeft < 0) {
+                if (isWorking) {
+                    isWorking = false;
+                    timeLeft = 15; // Descanso
+                    if (currentExIndex < exercises.length - 1) {
+                        currentExIndex++;
+                    } else {
+                        finishWorkout();
+                        return;
+                    }
+                } else {
+                    isWorking = true;
+                    timeLeft = 45; // Trabalho
+                }
+                beep();
+            }
+            updateUI();
+        }, 1000);
+    }
+
+    function updateUI() {
+        const display = document.getElementById('display');
+        const label = document.getElementById('status-label');
+        const exName = document.getElementById('exercise-name');
+        
+        display.innerText = timeLeft;
+        
+        if (isWorking) {
+            label.innerText = "TRABALHE";
+            label.style.color = "#8a2be2";
+            exName.innerText = exercises[currentExIndex];
+            display.style.color = "#fff";
+        } else {
+            label.innerText = "DESCANSO";
+            label.style.color = "#00f2ff";
+            exName.innerText = "PRÓXIMO: " + exercises[currentExIndex];
+            display.style.color = "#00f2ff";
+        }
+    }
+
+    function finishWorkout() {
+        clearInterval(timer);
+        document.getElementById('display').innerText = "DONE";
+        document.getElementById('exercise-name').innerText = "Treino Finalizado!";
+        isRunning = false;
+        document.getElementById('mainBtn').innerText = "REINICIAR";
+    }
+
+    function resetWorkout() {
+        clearInterval(timer);
+        timeLeft = 45;
+        isWorking = true;
+        currentExIndex = 0;
+        isRunning = false;
+        document.getElementById('mainBtn').innerText = "INICIAR";
+        updateUI();
+    }
+
+    // Lógica de Checklist e Persistência
+    function toggleCheck(index) {
+        const checks = document.querySelectorAll('.task');
+        checks[index].checked = !checks[index].checked;
+        saveData();
+    }
+
+    function saveData() {
+        const checks = Array.from(document.querySelectorAll('.task')).map(t => t.checked);
+        localStorage.setItem('eclipse_data', JSON.stringify(checks));
+        updateProgress();
+    }
+
+    function updateProgress() {
+        const checks = document.querySelectorAll('.task');
+        const checked = Array.from(checks).filter(t => t.checked).length;
+        const percent = Math.round((checked / checks.length) * 100);
+        document.getElementById('progress').style.width = percent + "%";
+        document.getElementById('percent-text').innerText = percent + "%";
+    }
+
+    function loadData() {
+        const saved = JSON.parse(localStorage.getItem('eclipse_data'));
+        if (saved) {
+            document.querySelectorAll('.task').forEach((t, i) => t.checked = saved[i]);
+            updateProgress();
+        }
+    }
+
+    function beep() {
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = context.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, context.currentTime);
+        const gain = context.createGain();
+        gain.gain.exponentialRampToValueAtTime(0.00001, context.currentTime + 0.5);
+        osc.connect(gain);
+        gain.connect(context.destination);
+        osc.start();
+        osc.stop(context.currentTime + 0.5);
+    }
+
+    window.onload = loadData;
+</script>
+
+</body>
+</html>
